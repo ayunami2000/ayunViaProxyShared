@@ -1,0 +1,11 @@
+# Hostname bases
+host-bases:
+  - vpshared.localhost
+# HCaptcha Secret
+h-captcha-secret: ""
+# HCaptcha Site Key
+h-captcha-site-key: ""
+# IPv4 of public instance
+self-ipv4: ""
+# IPv6 of public instance
+self-ipv6: ""

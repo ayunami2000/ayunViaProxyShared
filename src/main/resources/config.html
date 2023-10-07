@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>ViaProxyShared</title>
+        <link href="https://cdn.jsdelivr.net/npm/halfmoon@2.0.0/css/halfmoon.min.css" rel="stylesheet" integrity="sha256-pfT/Otf/lK1xFNInb5QQR1uRF9cOP/8zDICH+QQ6o2c=" crossorigin="anonymous" />
+        <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    </head>
+    <body data-bs-theme="dark">
+        <div class="container">
+            <div class="row justify-content-center text-center">
+                <div class="col-lg-4 col-sm-6 col-10">
+                    <h1>ViaProxyShared</h1>
+                    <h5>by ayunami2000</h5>
+                    <p>This instance will expire in 5 minutes.</p>
+                    <form action="" method="POST" class="text-start">
+                        <div class="mb-3">
+                            <label class="form-label" for="username">Username (leave blank for premium)</label>
+                            <input type="text" class="form-control" id="username" name="username" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="host">Server IP/ClassiCube URL/Eaglercraft WebSocket URL</label>
+                            <input type="text" class="form-control" id="host" name="host" required />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="port">Server Port (leave blank for 25565)</label>
+                            <input type="number" min="0" max="65535" class="form-control" id="port" name="port" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="version">Server Version</label>
+                            <select class="form-select" id="version" name="version">VERSIONSHERE
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-lg btn-primary ms-auto d-block">Configure</button>
+                    </form>
+                    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
