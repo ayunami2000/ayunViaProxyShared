@@ -37,13 +37,8 @@ import java.util.stream.Collectors;
 public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     private static final File webFolder = new File("ViaLoader", "vpshared");
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    private static void ensureWebFolder() {
-        webFolder.mkdirs();
-    }
-
     static {
-        ensureWebFolder();
+        webFolder.mkdirs();
     }
 
     private static final File captchaFile = new File(webFolder, "captcha.html");
@@ -51,13 +46,13 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
     private static final File configFile = new File(webFolder, "config.html");
     private static final File authFile = new File(webFolder, "auth.html");
     private static final File deleteFile = new File(webFolder, "delete.html");
-    private static final String captchaPage;
-    private static final String versionPage;
-    private static final String configPage;
-    private static final String authPage;
-    private static final String deletePage;
+    private static String captchaPage;
+    private static String versionPage;
+    private static String configPage;
+    private static String authPage;
+    private static String deletePage;
 
-    static {
+    protected static void initFiles() {
         try {
             if (!captchaFile.exists()) {
                 Files.copy(Objects.requireNonNull(HttpHandler.class.getResourceAsStream("/captcha.html")), captchaFile.toPath());

@@ -39,6 +39,7 @@ public class Main extends ViaProxyPlugin {
     @Override
     public void onEnable() {
         (new FunnyConfig(new File("ViaLoader", "vpshared.yml"))).reloadConfig();
+        HttpHandler.initFiles();
         hasEagUtils = PluginManager.getPlugin("ViaProxyEagUtils") != null;
         PluginManager.EVENT_MANAGER.register(this);
     }

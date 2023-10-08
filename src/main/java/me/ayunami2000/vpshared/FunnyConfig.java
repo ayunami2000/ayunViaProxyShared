@@ -1,7 +1,5 @@
 package me.ayunami2000.vpshared;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.viaversion.viaversion.util.Config;
 
 import java.io.File;
@@ -27,9 +25,11 @@ public class FunnyConfig extends Config {
     @Override
     protected void handleConfig(Map<String, Object> map) {
         Object item = map.get("host-bases");
-        if (item instanceof JsonArray) {
-            for (JsonElement elem : ((JsonArray) item)) {
-                hostBases.add(elem.toString());
+        if (item instanceof List) {
+            for (Object elem : (List) item) {
+                if (elem instanceof String) {
+                    hostBases.add((String) elem);
+                }
             }
         }
         item = map.get("h-captcha-secret");
