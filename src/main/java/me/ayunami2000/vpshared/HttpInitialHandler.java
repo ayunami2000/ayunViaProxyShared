@@ -53,6 +53,6 @@ public class HttpInitialHandler extends ByteToMessageDecoder {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        ExceptionUtil.handleNettyException(ctx, cause, null);
+        ExceptionUtil.handleNettyException(ctx, cause, null, true);
     }
 }

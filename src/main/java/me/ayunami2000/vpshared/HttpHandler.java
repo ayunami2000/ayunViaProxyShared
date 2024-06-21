@@ -2,23 +2,23 @@ package me.ayunami2000.vpshared;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
-import net.raphimc.mcauth.MinecraftAuth;
-import net.raphimc.mcauth.step.msa.StepMsaDeviceCode;
-import net.raphimc.mcauth.util.MicrosoftConstants;
-import net.raphimc.vialoader.util.VersionEnum;
+import net.raphimc.minecraftauth.MinecraftAuth;
+import net.raphimc.minecraftauth.step.msa.StepMsaDeviceCode;
+import net.raphimc.viabedrock.api.BedrockProtocolVersion;
+import net.raphimc.vialoader.util.ProtocolVersionList;
 import net.raphimc.viaproxy.proxy.session.UserOptions;
 import net.raphimc.viaproxy.proxy.util.ExceptionUtil;
 import net.raphimc.viaproxy.saves.impl.accounts.BedrockAccount;
 import net.raphimc.viaproxy.saves.impl.accounts.MicrosoftAccount;
 import net.raphimc.viaproxy.saves.impl.accounts.OfflineAccount;
 import org.apache.commons.io.FileUtils;
-import org.apache.http.impl.client.CloseableHttpClient;
 
 import java.io.*;
 import java.net.URI;
@@ -66,7 +66,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
                 Files.copy(Objects.requireNonNull(HttpHandler.class.getResourceAsStream("/config.html")), configFile.toPath());
             }
             StringBuilder sb = new StringBuilder();
-            for (VersionEnum v : VersionEnum.SORTED_VERSIONS) {
+            for (ProtocolVersion v : ProtocolVersionList.getProtocolsNewToOld()) {
                 sb.append(versionPage.replaceAll("VERSIONHERE", v.getName()));
             }
             configPage = FileUtils.readFileToString(configFile, StandardCharsets.UTF_8).replaceAll("VERSIONSHERE", sb.toString());
@@ -145,7 +145,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
                         try {
                             connInfo.port = Integer.parseInt(params.get("port"));
                         } catch (NumberFormatException ignored) {}
-                        for (VersionEnum v : VersionEnum.getAllVersions()) {
+                        for (ProtocolVersion v : ProtocolVersionList.getProtocolsNewToOld()) {
                             if (v.getName().equalsIgnoreCase(params.get("version"))) {
                                 connInfo.version = v;
                                 break;
@@ -194,20 +194,16 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
                             }
                         } else if (params.get("username").isEmpty()) {
                             Consumer<StepMsaDeviceCode.MsaDeviceCode> cb = msaDeviceCode -> {
-                                connInfo.auth = authPage.replaceAll("CODEHERE", msaDeviceCode.userCode());
+                                connInfo.auth = authPage.replaceAll("CODEHERE", msaDeviceCode.getUserCode());
                                 bb.writeCharSequence(deletePage.replaceAll("AUTHHERE", connInfo.auth), StandardCharsets.UTF_8);
                                 DefaultFullHttpResponse resp = new DefaultFullHttpResponse(req.protocolVersion(), HttpResponseStatus.OK, bb);
                                 resp.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/html;charset=utf-8");
                                 ctx.writeAndFlush(resp).addListener(ChannelFutureListener.CLOSE);
                             };
-                            if (connInfo.version.equals(VersionEnum.bedrockLatest)) {
-                                try (final CloseableHttpClient httpClient = MicrosoftConstants.createHttpClient()) {
-                                    connInfo.userOptions = new UserOptions(null, new BedrockAccount(MinecraftAuth.BEDROCK_DEVICE_CODE_LOGIN.getFromInput(httpClient, new StepMsaDeviceCode.MsaDeviceCodeCallback(cb))));
-                                }
+                            if (connInfo.version.equals(BedrockProtocolVersion.bedrockLatest)) {
+                                connInfo.userOptions = new UserOptions(null, new BedrockAccount(MinecraftAuth.BEDROCK_DEVICE_CODE_LOGIN.getFromInput(MinecraftAuth.createHttpClient(), new StepMsaDeviceCode.MsaDeviceCodeCallback(cb))));
                             } else {
-                                try (final CloseableHttpClient httpClient = MicrosoftConstants.createHttpClient()) {
-                                    connInfo.userOptions = new UserOptions(null, new MicrosoftAccount(MinecraftAuth.JAVA_DEVICE_CODE_LOGIN.getFromInput(httpClient, new StepMsaDeviceCode.MsaDeviceCodeCallback(cb))));
-                                }
+                                connInfo.userOptions = new UserOptions(null, new MicrosoftAccount(MinecraftAuth.JAVA_DEVICE_CODE_LOGIN.getFromInput(MinecraftAuth.createHttpClient(), new StepMsaDeviceCode.MsaDeviceCodeCallback(cb))));
                             }
                             return;
                         } else {
@@ -270,6 +266,6 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        ExceptionUtil.handleNettyException(ctx, cause, null);
+        ExceptionUtil.handleNettyException(ctx, cause, null, true);
     }
 }

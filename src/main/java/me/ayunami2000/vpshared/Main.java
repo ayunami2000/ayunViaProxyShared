@@ -1,23 +1,19 @@
 package me.ayunami2000.vpshared;
 
+import com.viaversion.viaversion.api.protocol.version.ProtocolVersion;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.AttributeKey;
 import net.jodah.expiringmap.ExpiringMap;
 import net.lenni0451.lambdaevents.EventHandler;
-import net.raphimc.netminecraft.constants.ConnectionState;
+import net.raphimc.netminecraft.constants.IntendedState;
 import net.raphimc.netminecraft.packet.IPacket;
-import net.raphimc.netminecraft.packet.impl.handshake.C2SHandshakePacket;
-import net.raphimc.netminecraft.util.ServerAddress;
-import net.raphimc.vialegacy.protocols.release.protocol1_7_2_5to1_6_4.types.Types1_6_4;
-import net.raphimc.vialoader.util.VersionEnum;
-import net.raphimc.viaproxy.plugins.PluginManager;
+import net.raphimc.netminecraft.packet.impl.handshaking.C2SHandshakingClientIntentionPacket;
+import net.raphimc.vialegacy.protocol.release.r1_6_4tor1_7_2_5.types.Types1_6_4;
+import net.raphimc.viaproxy.ViaProxy;
 import net.raphimc.viaproxy.plugins.ViaProxyPlugin;
-import net.raphimc.viaproxy.plugins.events.Client2ProxyChannelInitializeEvent;
-import net.raphimc.viaproxy.plugins.events.Client2ProxyHandlerCreationEvent;
-import net.raphimc.viaproxy.plugins.events.ConnectEvent;
-import net.raphimc.viaproxy.plugins.events.PreConnectEvent;
+import net.raphimc.viaproxy.plugins.events.*;
 import net.raphimc.viaproxy.plugins.events.types.ITyped;
 import net.raphimc.viaproxy.proxy.client2proxy.Client2ProxyHandler;
 import net.raphimc.viaproxy.proxy.client2proxy.passthrough.PassthroughClient2ProxyHandler;
@@ -28,6 +24,8 @@ import net.raphimc.viaproxy.proxy.util.ExceptionUtil;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 
 public class Main extends ViaProxyPlugin {
@@ -38,10 +36,14 @@ public class Main extends ViaProxyPlugin {
 
     @Override
     public void onEnable() {
-        (new FunnyConfig(new File("ViaLoader", "vpshared.yml"))).reloadConfig();
+        (new FunnyConfig(new File("ViaLoader", "vpshared.yml"))).reload();
         HttpHandler.initFiles();
-        hasEagUtils = PluginManager.getPlugin("ViaProxyEagUtils") != null;
-        PluginManager.EVENT_MANAGER.register(this);
+        ViaProxy.EVENT_MANAGER.register(this);
+    }
+
+    @EventHandler
+    public void onEvent(ProxyStartEvent event) {
+        hasEagUtils = ViaProxy.getPluginManager().getPlugin("ViaProxyEagUtils") != null;
     }
 
     @EventHandler
@@ -101,13 +103,13 @@ public class Main extends ViaProxyPlugin {
                     super.channelRead0(ctx, msg);
                 }
                 @Override
-                protected ServerAddress getServerAddress() {
+                protected SocketAddress getServerAddress() {
                     try {
                         LegacyProxyConnection proxyConnection = (LegacyProxyConnection) proxyConnectionField.get(this);
                         if (proxyConnection.getC2P().hasAttr(connFullKey)) {
                             ConnInfo connInfo = proxyConnection.getC2P().attr(connFullKey).get();
-                            ServerAddress addr = new ServerAddress(connInfo.host, connInfo.port);
-                            if (isLocal(addr.toSocketAddress().getAddress())) {
+                            InetSocketAddress addr = new InetSocketAddress(connInfo.host, connInfo.port);
+                            if (isLocal(addr.getAddress())) {
                                 return null;
                             } else {
                                 return addr;
@@ -126,15 +128,15 @@ public class Main extends ViaProxyPlugin {
                 @Override
                 protected void channelRead0(ChannelHandlerContext ctx, IPacket packet) throws Exception {
                     if (!ctx.channel().isOpen()) return;
-                    if (packet instanceof C2SHandshakePacket) {
-                        C2SHandshakePacket handshakePacket = (C2SHandshakePacket) packet;
-                        if (handshakePacket.intendedState == ConnectionState.STATUS) {
+                    if (packet instanceof C2SHandshakingClientIntentionPacket) {
+                        C2SHandshakingClientIntentionPacket handshakePacket = (C2SHandshakingClientIntentionPacket) packet;
+                        if (handshakePacket.intendedState == IntendedState.STATUS) {
                             ctx.close();
                         } else {
                             String key = handshakePacket.address.split("\\.", 2)[0];
                             if (connMap.containsKey(key) && connMap.get(key).host != null) {
                                 ConnInfo connInfo = connMap.remove(key);
-                                handshakePacket.address = connInfo.host + "\u0007" + connInfo.port + "\u0007" + connInfo.version.getName();
+                                handshakePacket.address = "\u0007" + connInfo.host + ":" + connInfo.port + "\u0007" + connInfo.version.getName() + "\u0007";
                                 ctx.channel().attr(connAccKey).set(connInfo.userOptions);
                                 ctx.channel().attr(AttributeKey.valueOf("eag-secure-ws")).set(connInfo.secureWs);
                                 ctx.channel().attr(AttributeKey.valueOf("eag-ws-path")).set(connInfo.wsPath);
@@ -162,7 +164,7 @@ public class Main extends ViaProxyPlugin {
 
     @EventHandler
     public void onEvent(PreConnectEvent event) {
-        if (isLocal(event.getServerAddress().toSocketAddress().getAddress())) {
+        if (event.getServerAddress() instanceof InetSocketAddress && isLocal(((InetSocketAddress) event.getServerAddress()).getAddress())) {
             event.setCancelled(true);
         }
     }
@@ -206,7 +208,7 @@ public class Main extends ViaProxyPlugin {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            ExceptionUtil.handleNettyException(ctx, cause, null);
+            ExceptionUtil.handleNettyException(ctx, cause, null, true);
         }
     }
 
@@ -214,7 +216,7 @@ public class Main extends ViaProxyPlugin {
         public UserOptions userOptions = null;
         public String host = null;
         public int port = 25565;
-        public VersionEnum version = VersionEnum.r1_8;
+        public ProtocolVersion version = ProtocolVersion.v1_8;
         public String auth = "";
         public Boolean secureWs = null;
         public String wsPath = null;

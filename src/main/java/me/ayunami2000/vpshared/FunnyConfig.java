@@ -5,6 +5,7 @@ import com.viaversion.viaversion.util.Config;
 import java.io.File;
 import java.net.URL;
 import java.util.*;
+import java.util.logging.Logger;
 
 public class FunnyConfig extends Config {
     public static Set<String> hostBases = new HashSet<>();
@@ -14,7 +15,7 @@ public class FunnyConfig extends Config {
     public static String selfIpv6 = "";
 
     protected FunnyConfig(File configFile) {
-        super(configFile);
+        super(configFile, Logger.getLogger("FunnyConfig"));
     }
 
     @Override
